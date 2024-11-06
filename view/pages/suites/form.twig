@@ -102,8 +102,7 @@
                         <div class="card-body pb-2">
                             <div class="repeater">
 							    <div data-repeater-list="preco">
-
-									{% if precos == '' %}
+									{% if precos is empty %}
 										<div data-repeater-item class="mb-3">
 
 											<div class="d-flex justify-content-between">
