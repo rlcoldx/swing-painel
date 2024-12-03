@@ -32,7 +32,7 @@ class NotificacaoController extends Controller
     public function sendNotificacao($codes, $titulo, $mensagem){
 
         $data = [
-            "app_id" => "3b9141e8-c544-4e6b-a0b9-b46dbbbaffee",
+            "app_id" => "121ec2f2-6d96-477f-adc0-8fa6b3c58c74",
             "android_accent_color" => "FF0000FF",
             "small_icon" => "icon", 
             "ios_badgeType" => "Increase",
