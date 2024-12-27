@@ -13,22 +13,23 @@ $(document).ready(function() {
     var titulo = document.title;
     titulo = titulo.split(' - ');
     $('.dashboard_bar').html(titulo[1]);
+});
 
-	//offcanvas remote
-	$('[data-bs-toggle="offcanvas"]').on('click', function() {
-		$('.offcanvas-body').html('');
-		var url = $(this).attr('data-bs-remote');
-		var offcanvas = $(this).attr('data-bs-target');
-		$.ajax({
+// MODAL REMOTO
+$(document).on('click', '[data-bs-toggle="offcanvas"]', function(e) {
+	e.preventDefault();
+	$('.offcanvas-body').html('');
+	var url = $(this).attr('data-bs-remote');
+	var offcanvas = $(this).attr('data-bs-target');
+	$.ajax({
 		url: url,
 		method: 'GET',
 		success: function(response) {
 			$('.offcanvas-body').html(response);
 		}
-		});
 	});
-
 });
+
 
 // MODAL REMOTO
 $(document).on('click', '[data-bs-remote="modal"]', function(e) {
