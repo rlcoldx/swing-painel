@@ -15,9 +15,9 @@ class Home extends Model
     {
         $this->read = new Read();
         $this->read->FullRead("SELECT 
-            SUM(CASE WHEN p.pagamento_status = 'approved' THEN 1 ELSE 0 END) AS total_reservas_aprovadas,
-            SUM(CASE WHEN p.pagamento_status != 'approved' AND r.status_reserva = 'Aceito' THEN 1 ELSE 0 END) AS total_reservas_nao_concluidas,
-            SUM(CASE WHEN r.status_reserva = 'Recusado' THEN 1 ELSE 0 END) AS total_reservas_recusadas
+        SUM(CASE WHEN p.pagamento_status = 'approved' THEN 1 ELSE 0 END) AS total_reservas_aprovadas,
+        SUM(CASE  WHEN (p.pagamento_status IS NULL OR p.pagamento_status != 'approved') AND r.status_reserva = 'Aceito' THEN 1  ELSE 0 END ) AS total_reservas_nao_concluidas,
+        SUM(CASE WHEN r.status_reserva = 'Recusado' THEN 1 ELSE 0 END) AS total_reservas_recusadas
         FROM reservas r
         LEFT JOIN pagamentos p ON r.id = p.id_reserva");
         return $this->read;
