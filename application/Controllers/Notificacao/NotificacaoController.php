@@ -52,7 +52,7 @@ class NotificacaoController extends Controller
         $curl = curl_init();
         
         curl_setopt_array($curl, array(
-            CURLOPT_URL => 'https://api.onesignal.com/notifications',
+            CURLOPT_URL => 'https://api.onesignal.com/api/v1/notifications',
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
             CURLOPT_MAXREDIRS => 10,
@@ -63,7 +63,7 @@ class NotificacaoController extends Controller
             CURLOPT_POSTFIELDS => $jsonData,
             CURLOPT_HTTPHEADER => array(
                 'Content-Type: application/json; charset=utf-8',
-                'Authorization: Bearer NGJhMjEyY2ItMzU5OS00OGI3LThhODUtMTI1M2ZiMmRhOWIw'
+                'Authorization: Key os_v2_app_cipmf4tnszdx7loar6tlhrmmoqxkrbswui7u34fpolw7edb7mx4rxcsen3a5o6rewdoghpqjxrooop7jojltmootqp4tos2t4rbhoii'
             ),
         ));
         

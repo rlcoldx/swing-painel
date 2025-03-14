@@ -12,10 +12,17 @@ $(document).ready(function () {
 			data: formData,
 			type: 'POST',
 			success: function(data){
-				setTimeout(function(){
-					location.reload();
-				}, 1500);
-				Swal.fire('', 'ENVIADO COM SUCESSO!', 'success');
+				if(data !== 'error'){
+					Swal.fire('', 'ENVIADO COM SUCESSO!', 'success');
+					setTimeout(function(){
+						location.reload();
+					}, 1500);
+				}else{
+					Swal.fire('Erro', data, 'error');
+				}
+			},
+			error: function(xhr, status, error){
+				Swal.fire('Erro na requisição', xhr.responseText || error, 'error');
 			},
 			processData: false,
 			cache: false,
