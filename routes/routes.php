@@ -14,6 +14,7 @@ require  __DIR__ . '/clientes.php';
 require  __DIR__ . '/config.php';
 require  __DIR__ . '/notificacao.php';
 require  __DIR__ . '/cupons.php';
+require  __DIR__ . '/paginas.php';
 
 // ERROR
 $router->group("error")->namespace("Agencia\Close\Controllers\Error");
