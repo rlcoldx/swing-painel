@@ -10,8 +10,13 @@ Documento para o time do **app** (**Ionic** + **Angular**). O backend já expõe
 |------|------------|
 | **URL base** | Mesma base já usada nas outras APIs (ex.: `https://SEU_DOMINIO/app/`). Ajuste por ambiente (homologação / produção). |
 | **Autenticação** | Campo `token` no **corpo JSON**, com o mesmo valor `TOKEN` usado hoje em `reservas_save`, `login`, etc. (definido no servidor). |
-| **Formato** | `POST` com `Content-Type: application/json` e corpo em JSON (`php://input`). Query string não é usada para estes endpoints. |
+| **Formato** | `POST` com corpo JSON (`php://input`), como nos demais endpoints da pasta `app/`. Query string não é usada. |
 | **Usuário** | Sempre enviar `id_usuario` numérico do cliente logado (o mesmo `id` retornado no login / cadastro). |
+
+**Padrão de resposta (igual ao restante da pasta `app/`):**
+
+- `token` inválido ou ausente: corpo da resposta é o texto **`Sem autorização`** (não é JSON).
+- Demais casos: JSON com `result` = `"success"` ou `"error"`; em erro, use o campo `message` quando existir.
 
 **Exemplo de corpo genérico:**
 
@@ -39,7 +44,7 @@ Documento para o time do **app** (**Ionic** + **Angular**). O backend já expõe
 | `token` | sim | string | Token da API |
 | `id_usuario` | sim | int | ID do usuário logado |
 
-**Resposta `200` — sucesso:**
+**Resposta — sucesso (JSON):**
 
 ```json
 {
@@ -68,12 +73,7 @@ Documento para o time do **app** (**Ionic** + **Angular**). O backend já expõe
 - Se `programa_ativo` for `false`, as tabelas de fidelidade ainda não existem no banco (ou falha de leitura). Exiba mensagem amigável e oculte resgate; `saldo` / totais virão zerados.
 - Use `regras.mensagem` e `regras.regras[]` para a seção “Como funciona”.
 
-**Erros:**
-
-| HTTP | `result` | Quando |
-|------|----------|--------|
-| 401 | `error` | `token` inválido |
-| 400 | `error` | `id_usuario` ausente ou inválido |
+**Erro de validação (JSON):** `id_usuario` inválido → `{ "result": "error", "message": "id_usuario inválido" }`.
 
 ---
 
@@ -91,7 +91,7 @@ Documento para o time do **app** (**Ionic** + **Angular**). O backend já expõe
 | `id_usuario` | sim | int | ID do usuário |
 | `limite` | não | int | Padrão `50`, máximo `200` |
 
-**Resposta `200` — programa ativo:**
+**Resposta — programa ativo (JSON):**
 
 ```json
 {
@@ -179,7 +179,7 @@ Documento para o time do **app** (**Ionic** + **Angular**). O backend já expõe
 - **Bebida:** custo **150** pontos (configurável no backend).
 - Saldo deve ser ≥ custo; caso contrário retorna erro.
 
-**Resposta `200` — sucesso:**
+**Resposta — sucesso (JSON):**
 
 ```json
 {
@@ -191,7 +191,7 @@ Documento para o time do **app** (**Ionic** + **Angular**). O backend já expõe
 }
 ```
 
-**Resposta `422` — regra de negócio:**
+**Resposta — erro de regra (JSON, mesmo padrão dos outros `.php` da pasta `app/`):**
 
 ```json
 {
@@ -200,9 +200,7 @@ Documento para o time do **app** (**Ionic** + **Angular**). O backend já expõe
 }
 ```
 
-Outras mensagens possíveis: suíte não informada, suíte sem histórico de reserva, tipo inválido, programa inativo.
-
-**Resposta `400`:** falta `id_usuario` ou `tipo`.
+Outras mensagens possíveis: suíte não informada, suíte sem histórico de reserva, tipo inválido, programa inativo. Falta `id_usuario` ou `tipo` → `{ "result": "error", "message": "Informe id_usuario e tipo (suite, alimento ou bebida)." }`.
 
 ---
 
@@ -230,7 +228,7 @@ O servidor envia `Access-Control-Allow-Origin: *` nestes arquivos. No **Ionic** 
 - [ ] Constante `BASE_URL` + paths `/fidelidade_*.php`
 - [ ] Incluir `token` + `id_usuario` em todas as chamadas que exigem login
 - [ ] Tratar `programa_ativo === false`
-- [ ] Tratar HTTP 401, 400, 422 com `message` para exibir ao usuário
+- [ ] Tratar resposta `Sem autorização` (texto) e JSON com `result` = `error` e `message`
 - [ ] Resgate de suíte: filtrar lista de suítes pelo histórico do usuário
 - [ ] Após resgate bem-sucedido, atualizar saldo e extrato
 
