@@ -1,0 +1,150 @@
+{% extends "layout/layoutMaster.twig" %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block body %}
+
+<div class="content-body">
+    <div class="container-fluid">
+        <div class="page-titles">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{{ DOMAIN }}">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{{ DOMAIN }}/fidelidade">Fidelidade</a></li>
+                    <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ cliente.nome }}</a></li>
+                </ol>
+                <a href="{{ DOMAIN }}/fidelidade" class="btn btn-outline-light btn-sm">Voltar à lista</a>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-xl-4 col-lg-5 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h4 class="card-title mb-0">Dados do cliente</h4>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-2"><strong>Nome:</strong> {{ cliente.nome }}</p>
+                        <p class="mb-2"><strong>Email:</strong> {{ cliente.email }}</p>
+                        <p class="mb-2"><strong>Telefone:</strong> {{ cliente.telefone|default('—') }}</p>
+                        <p class="mb-2"><strong>CPF:</strong> {{ cliente.cpf|default('—') }}</p>
+                        {% if cliente.data %}
+                        <p class="mb-0"><strong>Cadastro:</strong> {{ cliente.data|date("d/m/Y H:i", "America/Sao_Paulo") }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-8 col-lg-7 mb-4">
+                <div class="row">
+                    <div class="col-sm-4 mb-3 mb-sm-0">
+                        <div class="card bg-primary">
+                            <div class="card-body py-4 text-center">
+                                <h6 class="text-white mb-1">Saldo atual</h6>
+                                <h2 class="text-white mb-0">{{ resumo.saldo }}</h2>
+                                <span class="text-white opacity-75 small">pontos</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4 mb-3 mb-sm-0">
+                        <div class="card">
+                            <div class="card-body py-4 text-center">
+                                <h6 class="mb-1">Total ganho</h6>
+                                <h3 class="mb-0">{{ resumo.total_ganho }}</h3>
+                                <span class="small">pontos acumulados</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="card">
+                            <div class="card-body py-4 text-center">
+                                <h6 class="mb-1">Total gasto</h6>
+                                <h3 class="mb-0">{{ resumo.total_gasto }}</h3>
+                                <span class="small">pontos utilizados</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="card-title mb-0">Movimentação de pontos</h4>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th class="text-end">Pontos</th>
+                                <th>Tipo</th>
+                                <th>Descrição</th>
+                                <th class="text-end">Reserva</th>
+                                <th class="text-end">Resgate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if movimentacoes|length == 0 %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4">Nenhuma movimentação registrada.</td>
+                            </tr>
+                            {% endif %}
+                            {% for m in movimentacoes %}
+                            <tr>
+                                <td class="text-nowrap">{{ m.criado_em|date("d/m/Y H:i", "America/Sao_Paulo") }}</td>
+                                <td class="text-end fw-semibold {% if m.pontos > 0 %}text-success{% elseif m.pontos < 0 %}text-warning{% endif %}">
+                                    {% if m.pontos > 0 %}+{% endif %}{{ m.pontos }}
+                                </td>
+                                <td><code>{{ m.tipo }}</code></td>
+                                <td>{{ m.descricao|default('—') }}</td>
+                                <td class="text-end">{{ m.id_reserva|default('—') }}</td>
+                                <td class="text-end">{{ m.id_resgate|default('—') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title mb-0">Pedidos de resgate (app)</h4>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Tipo</th>
+                                <th class="text-end">Pontos</th>
+                                <th>Suíte</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if resgates|length == 0 %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4">Nenhum pedido de resgate.</td>
+                            </tr>
+                            {% endif %}
+                            {% for r in resgates %}
+                            <tr>
+                                <td class="text-nowrap">{{ r.criado_em|date("d/m/Y H:i", "America/Sao_Paulo") }}</td>
+                                <td>{{ r.tipo }}</td>
+                                <td class="text-end">{{ r.pontos }}</td>
+                                <td>{{ r.suite_nome|default('—') }}</td>
+                                <td><span class="badge badge-sm light badge-{{ r.status == 'pendente' ? 'warning' : (r.status == 'atendido' ? 'success' : 'secondary') }}">{{ r.status }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -118,4 +118,9 @@
 
 		}
 
+		if (isset($response->status) && $response->status === 'approved' && function_exists('fidelidade_creditar_por_pagamento_aprovado')) {
+			$valorPago = isset($_POST['transaction_amount']) ? (float) $_POST['transaction_amount'] : (float) number_format($response->transaction_amount ?? 0, 2, '.', '');
+			fidelidade_creditar_por_pagamento_aprovado($db, (int) $reserva['id'], $valorPago);
+		}
+
 	}

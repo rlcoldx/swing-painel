@@ -1,0 +1,66 @@
+{% extends "layout/layoutMaster.twig" %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block body %}
+
+<div class="content-body">
+    <div class="container-fluid">
+        <div class="page-titles">
+            <div class="d-flex flex-wrap align-items-center justify-content-between">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ DOMAIN }}">Home</a></li>
+                    <li class="breadcrumb-item active"><a href="javascript:void(0)">{{ titulo }}</a></li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="alert alert-info border-0">
+            <strong>Programa de fidelidade:</strong> R$ 1,00 pago em reserva (app) = 1 ponto após pagamento aprovado.
+            Resgate de suíte: 920 pontos (mesma suíte já reservada pelo cliente).
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h4 class="card-title mb-0">Clientes e pontos</h4>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="datatable" class="table dataTable">
+                        <thead>
+                            <tr>
+                                <th width="50">#</th>
+                                <th>Cliente</th>
+                                <th>Email</th>
+                                <th class="text-end">Saldo atual</th>
+                                <th class="text-end">Pontos ganhos</th>
+                                <th class="text-end">Pontos gastos</th>
+                                <th width="120" class="text-end">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in usuarios %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ u.nome }}</td>
+                                <td>{{ u.email }}</td>
+                                <td class="text-end fw-semibold">{{ u.saldo|default(0) }}</td>
+                                <td class="text-end">{{ u.total_ganho|default(0) }}</td>
+                                <td class="text-end">{{ u.total_gasto|default(0) }}</td>
+                                <td class="text-end">
+                                    <a href="{{ DOMAIN }}/fidelidade/usuario/{{ u.id }}" class="btn btn-primary btn-xs">Extrato</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ DOMAIN }}/view/assets/vendor/datatables/js/jquery.dataTables.min.js"></script>
+<script src="{{ DOMAIN }}/view/assets/js/plugins-init/datatables.init.js"></script>
+
+{% endblock %}

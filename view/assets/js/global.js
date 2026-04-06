@@ -73,7 +73,7 @@ function verificarNovosAgendamentos() {
 								<div>Você precisará aceitar as reservas para que os clientes possam concluir suas reservas.</div>
 							</div>
 							<div class="ms-md-4">
-								<a href="`+DOMAIN+`/reservas?status=Pedente" class="btn bg-black">VER RESERVAS</a>
+								<a href="`+ DOMAIN +`/reservas?status=Pendente" class="btn bg-black">VER RESERVAS</a>
 							</div>
 						</div>
 					</div>
