@@ -1,5 +1,8 @@
 <?php 
 	include('../config/config.php');
+	if (!function_exists('fidelidade_processar_resgate_app')) {
+		include_once(dirname(__DIR__) . '/config/fidelidade.php');
+	}
 
     header("Access-Control-Allow-Origin: *");
     header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE");

@@ -21,9 +21,18 @@ class ReservaController extends Controller
 		$this->setParams($params);
 
 		$reservas = new Reserva();
-		$reservas = $reservas->getReservas()->getResult();
+		$filtros = [
+			'data_de' => $_GET['de'] ?? '',
+			'data_ate' => $_GET['ate'] ?? '',
+			'pagamento_status' => $_GET['pagamento_status'] ?? '',
+			'status_reserva' => $_GET['status_reserva'] ?? '',
+		];
+		$reservas = $reservas->getReservas(99999, $filtros)->getResult();
 
-		$this->render('pages/reservas/index.twig', ['reservas' => $reservas]);
+		$this->render('pages/reservas/index.twig', [
+			'reservas' => $reservas,
+			'filtros' => $filtros,
+		]);
 		
   	}
 

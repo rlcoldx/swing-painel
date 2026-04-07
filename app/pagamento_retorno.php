@@ -1,5 +1,10 @@
 <?php
-    include('../config/config.php');
+/**
+ * Webhook / notificação Mercado Pago: atualiza `pagamento_status`.
+ * Quando status = approved, credita pontos de fidelidade (fidelidade_creditar_por_pagamento_aprovado).
+ * Reservas pagas só com pontos não passam por aqui — tratadas em pagamento_preference.php.
+ */
+include('../config/config.php');
 
     header("Access-Control-Allow-Origin: *");
     header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE");
@@ -44,16 +49,25 @@
           $sql_pagamento->execute([$payment['status'], $payment['id']]);
 
           if ($pagamento_status === 'approved' && function_exists('fidelidade_creditar_por_pagamento_aprovado')) {
-              $q = $db->prepare("SELECT id_reserva, pagamento_valor FROM pagamentos WHERE pagamento_id = ? LIMIT 1");
-              $q->execute([$payment['id']]);
+
+              $pid = (string) $payment['id'];
+              $q = $db->prepare('SELECT id_reserva, pagamento_valor FROM pagamentos WHERE pagamento_id = ? LIMIT 1');
+              $q->execute([$pid]);
               $rowPag = $q->fetch(PDO::FETCH_ASSOC);
-              if ($rowPag && !empty($rowPag['id_reserva'])) {
-                  fidelidade_creditar_por_pagamento_aprovado(
-                      $db,
-                      (int) $rowPag['id_reserva'],
-                      (float) $rowPag['pagamento_valor']
-                  );
+              if (!$rowPag) {
+                  $q2 = $db->prepare('SELECT id_reserva, pagamento_valor FROM pagamentos WHERE pagamento_id = ? LIMIT 1');
+                  $q2->execute([(int) $payment['id']]);
+                  $rowPag = $q2->fetch(PDO::FETCH_ASSOC);
               }
+
+              if (!empty($rowPag['id_reserva'])) {
+                  $valor = (float) ($rowPag['pagamento_valor'] ?? 0);
+                  if ($valor <= 0 && isset($payment['transaction_amount'])) {
+                      $valor = (float) $payment['transaction_amount'];
+                  }
+                  fidelidade_creditar_por_pagamento_aprovado($db, (int) $rowPag['id_reserva'], $valor);
+              }
+
           }
 
         }

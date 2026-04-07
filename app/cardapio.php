@@ -6,7 +6,6 @@
     header("Access-Control-Allow-Headers: X-API-KEY, Origin, X-Requested-With, Content-Type, Accept, Access-Control-Request-Method");
 
     $_POST = json_decode(file_get_contents("php://input"), true);
-
     if(@$_POST['token'] == TOKEN){
 
 		$sql_cardapios = $db->prepare("SELECT * FROM cardapios ORDER BY `order`,`id` ASC");

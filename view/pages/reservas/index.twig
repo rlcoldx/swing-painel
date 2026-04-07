@@ -19,6 +19,48 @@
 
         <div class="card">
             <div class="card-body">
+                <form method="get" action="{{ DOMAIN }}/reservas" class="mb-3">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-12 col-md-2">
+                            <label class="form-label fw-bold">Período (de)</label>
+                            <input type="date" class="form-control" name="de" value="{{ filtros.data_de|default('') }}">
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <label class="form-label fw-bold">Período (até)</label>
+                            <input type="date" class="form-control" name="ate" value="{{ filtros.data_ate|default('') }}">
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label fw-bold">Status do pagamento</label>
+                            <select class="form-control" name="pagamento_status">
+                                {% set pay = filtros.pagamento_status|default('') %}
+                                <option value="" {{ pay == '' ? 'selected' }}>Todos</option>
+                                <option value="nao_iniciado" {{ pay == 'nao_iniciado' ? 'selected' }}>Não iniciado</option>
+                                <option value="pending" {{ pay == 'pending' ? 'selected' }}>Pendente</option>
+                                <option value="approved" {{ pay == 'approved' ? 'selected' }}>Aprovado</option>
+                                <option value="in_process" {{ pay == 'in_process' ? 'selected' }}>Em processo</option>
+                                <option value="rejected" {{ pay == 'rejected' ? 'selected' }}>Rejeitado</option>
+                                <option value="cancelled" {{ pay == 'cancelled' ? 'selected' }}>Cancelado</option>
+                                <option value="refunded" {{ pay == 'refunded' ? 'selected' }}>Reembolsado</option>
+                                <option value="in_mediation" {{ pay == 'in_mediation' ? 'selected' }}>Em mediação</option>
+                                <option value="charged_back" {{ pay == 'charged_back' ? 'selected' }}>Estornado</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label fw-bold">Status da reserva</label>
+                            {% set st = filtros.status_reserva|default('') %}
+                            <select class="form-control" name="status_reserva">
+                                <option value="" {{ st == '' ? 'selected' }}>Todos</option>
+                                <option value="Pendente" {{ st == 'Pendente' ? 'selected' }}>Pendente</option>
+                                <option value="Aceito" {{ st == 'Aceito' ? 'selected' }}>Aceito</option>
+                                <option value="Recusado" {{ st == 'Recusado' ? 'selected' }}>Recusado</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-2 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Filtrar</button>
+                            <a href="{{ DOMAIN }}/reservas" class="btn btn-outline-secondary">Limpar</a>
+                        </div>
+                    </div>
+                </form>
                 <div>
                     <table id="datatable" class="table dataTable">
                         <thead>

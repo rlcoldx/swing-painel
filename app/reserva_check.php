@@ -14,8 +14,10 @@
         $sql_check->execute($dados);
         $check = $sql_check->fetch(PDO::FETCH_ASSOC);
 
-        if ($check["status_reserva"] !== 'Pendente') {
+        if ($check["status_reserva"] == 'Aceito') {
 			$json = array("result" => "OK");
+		}else if($check["status_reserva"] == 'Recusado'){
+			$json = array("result" => "REFUSED");
 		}else{
 			$json = array("result" => "WAIT");
 		}

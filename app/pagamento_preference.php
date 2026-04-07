@@ -1,5 +1,12 @@
-<?php 
-	include('../config/config.php');
+<?php
+/**
+ * Checkout: preference Mercado Pago OU, se reserva com pontos (pontos_fidelidade > 0),
+ * aprova pagamento e debita pontos aqui (fidelidade_processar_preference_fidelidade) — sem pagamento.php / pagamento_retorno.php.
+ */
+include('../config/config.php');
+if (!function_exists('fidelidade_processar_preference_fidelidade')) {
+    include_once(dirname(__DIR__) . '/config/fidelidade.php');
+}
 
     header("Access-Control-Allow-Origin: *");
     header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE");
@@ -9,15 +16,36 @@
 
     if(@$_POST['token'] == TOKEN){
 
-		$dados = array($_POST['codigo_reserva']);
-		$sql_reserva = $db->prepare("SELECT r.*, DATE_FORMAT(r.data_reserva, '%d-%m-%Y') AS data_escolhida, s.nome as suite_nome FROM reservas AS r
-									INNER JOIN suites AS s ON s.id = r.id_suite
-									WHERE r.codigo_reserva = ?");
-		$sql_reserva->execute($dados);
-		$reserva = $sql_reserva->fetch(PDO::FETCH_ASSOC);
+        $dados = array($_POST['codigo_reserva']);
+        $sql_reserva = $db->prepare("SELECT r.*, DATE_FORMAT(r.data_reserva, '%d-%m-%Y') AS data_escolhida, s.nome as suite_nome FROM reservas AS r
+                                    INNER JOIN suites AS s ON s.id = r.id_suite
+                                    WHERE r.codigo_reserva = ?");
+        $sql_reserva->execute($dados);
+        $reserva = $sql_reserva->fetch(PDO::FETCH_ASSOC);
 
+        if (!$reserva) {
+            echo json_encode([['result' => 'error', 'message' => 'Reserva não encontrada.']]);
+            exit;
+        }
 
-		$curl = curl_init();
+        $pontosFidelidade = isset($reserva['pontos_fidelidade']) ? (int) $reserva['pontos_fidelidade'] : 0;
+        if ($pontosFidelidade > 0) {
+            $out = fidelidade_processar_preference_fidelidade($db, $reserva, $reserva['id_usuario']);
+            if (empty($out['ok'])) {
+                echo json_encode([['result' => 'error', 'message' => $out['message'] ?? 'Não foi possível concluir o pagamento com pontos.']]);
+                exit;
+            }
+            $json = [];
+            $json[] = [
+                'id' => 'fidelidade',
+                'fidelidade' => true,
+                'id_reserva' => (int) $reserva['id'],
+            ];
+            echo json_encode($json);
+            exit;
+        }
+
+        $curl = curl_init();
 
         curl_setopt_array($curl, array(
             CURLOPT_URL => 'https://api.mercadopago.com/checkout/preferences',
@@ -67,12 +95,15 @@
 
         if (isset($obj->id)) {
             if ($obj->id != NULL) {
-            	$json[] = array("id" => $obj->id);
-            	$json = json_encode($json);
-				echo $json;
+                $json = [];
+                $json[] = [
+                    'id' => $obj->id,
+                    'id_reserva' => (int) $reserva['id'],
+                ];
+                echo json_encode($json);
             }
         }
 
-	}else{
-		echo 'Sem autorização';
-	}
+    }else{
+        echo 'Sem autorização';
+    }
