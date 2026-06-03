@@ -1,9 +1,4 @@
 <?php
-/**
- * Mercado Pago: cria/atualiza registro em `pagamentos` com o status devolvido pela API (geralmente pending).
- * Crédito de pontos de fidelidade NÃO entra aqui — só em pagamento_retorno.php quando status = approved.
- * Reserva paga só com pontos: fluxo em pagamento_preference.php (sem este arquivo e sem retorno MP).
- */
 include('../config/config.php');
 
 header('Access-Control-Allow-Origin: *');

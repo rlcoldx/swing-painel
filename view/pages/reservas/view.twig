@@ -34,11 +34,17 @@
                             </li>
                             <li class="list-group-item py-2 px-0 d-flex justify-content-between align-items-center">
                                 Valor da Reserva
-                                <span class="text-primary fw-bolder">R$ {{ reserva.valor_reserva|number_format(2, ',', '.') }}</span>
+                                <span class="text-primary fw-bolder">
+                                    {% if reserva.cupom_reserva == 'FIDELIDADE' %}
+                                        R$ {{ reserva.valor_reserva_total|number_format(2, ',', '.') }} - <span class="badge py-0 bg-success">FIDELIDADE</span>
+                                    {% else %}
+                                        R$ {{ reserva.valor_reserva|number_format(2, ',', '.') }}
+                                    {% endif %}
+                                </span>
                             </li>
                             <li class="list-group-item py-2 px-0 d-flex justify-content-between align-items-center">
                                 Data da Reserva
-                                <span class="text-primary fw-bolder">{{ reserva.data_reserva|date("m/d/Y") }}</span>
+                                <span class="text-primary fw-bolder">{{ reserva.data_reserva|date("d/m/Y") }}</span>
                             </li>
                             <li class="list-group-item py-2 px-0 d-flex justify-content-between align-items-center">
                                 Horário de Chegada
@@ -48,6 +54,12 @@
                                 Período de Permanência
                                 <div class="text-primary fw-bolder">{{ reserva.periodo_reserva }}</div>
                             </li>
+                            {% if reserva.cupom_reserva == 'FIDELIDADE' %}
+                            <li class="list-group-item py-2 px-0 d-flex justify-content-between align-items-center">
+                                Pontos de Fidelidade
+                                <div class="text-success fw-bolder">{{ reserva.pontos_fidelidade }}</div>
+                            </li>
+                            {% endif %}
                         </ul>
 
                     </div>
@@ -105,7 +117,7 @@
                             </li>
                             <li class="list-group-item py-2 px-0 d-flex justify-content-between align-items-center">
                                 Data do Pagamento
-                                <span class="text-primary fw-bolder">{{ reserva.date_update|date("m/d/Y") }}</span>
+                                <span class="text-primary fw-bolder">{{ reserva.date_update|date("d/m/Y") }}</span>
                             </li>
                             <li class="list-group-item py-2 px-0 d-flex justify-content-between align-items-center">
                                 Codigo do Pagamento

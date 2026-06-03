@@ -1,16 +1,12 @@
 <?php
-/**
- * Checkout: preference Mercado Pago OU, se reserva com pontos (pontos_fidelidade > 0),
- * aprova pagamento e debita pontos aqui (fidelidade_processar_preference_fidelidade) — sem pagamento.php / pagamento_retorno.php.
- */
 include('../config/config.php');
-if (!function_exists('fidelidade_processar_preference_fidelidade')) {
-    include_once(dirname(__DIR__) . '/config/fidelidade.php');
-}
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE");
+header("Access-Control-Allow-Headers: X-API-KEY, Origin, X-Requested-With, Content-Type, Accept, Access-Control-Request-Method");
 
-    header("Access-Control-Allow-Origin: *");
-    header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE");
-    header("Access-Control-Allow-Headers: X-API-KEY, Origin, X-Requested-With, Content-Type, Accept, Access-Control-Request-Method");
+    if (!function_exists('fidelidade_processar_preference_fidelidade')) {
+        include_once(dirname(__DIR__) . '/config/fidelidade.php');
+    }
 
     $_POST = json_decode(file_get_contents("php://input"), true);
 

@@ -63,37 +63,42 @@ function fidelidade_saldo_usuario(PDO $db, int $idUsuario): int
 /**
  * Credita pontos após pagamento aprovado (R$ 1,00 → 1 ponto, parte inteira).
  * Idempotente: uma linha por reserva + tipo credito_reserva_app.
+ *
+ * @param int|string $idReserva Aceita BIGINT de `reservas.id` (string evita limite do int no PHP).
  */
-function fidelidade_creditar_por_pagamento_aprovado(PDO $db, int $idReserva, float $valorPagoReal): bool
+function fidelidade_creditar_por_pagamento_aprovado(PDO $db, int|string $idReserva, float $valorPagoReal): bool
 {
-    if (!fidelidade_tabelas_existem($db) || $idReserva <= 0) {
+    $idReservaStr = trim((string) $idReserva);
+    if (!fidelidade_tabelas_existem($db) || $idReservaStr === '' || !ctype_digit($idReservaStr) || $idReservaStr === '0') {
         return false;
     }
 
-    $pontos = (int) floor(max(0.0, $valorPagoReal) * FIDELIDADE_PONTOS_POR_REAL);
+    $valorNum = (float) str_replace(',', '.', preg_replace('/[^\d.,-]/', '', (string) $valorPagoReal));
+    $pontos = (int) floor(max(0.0, $valorNum) * FIDELIDADE_PONTOS_POR_REAL);
     if ($pontos <= 0) {
         return false;
     }
 
     $st = $db->prepare('SELECT id_usuario, codigo_reserva FROM reservas WHERE id = ? LIMIT 1');
-    $st->execute([$idReserva]);
+    $st->execute([$idReservaStr]);
     $reserva = $st->fetch(PDO::FETCH_ASSOC);
-    if (!$reserva || empty($reserva['id_usuario'])) {
+    $idUsuarioStr = trim((string) ($reserva['id_usuario'] ?? ''));
+    if (!$reserva || $idUsuarioStr === '' || !ctype_digit($idUsuarioStr)) {
         return false;
     }
-    $idUsuario = (int) $reserva['id_usuario'];
+    $idUsuario = (int) $idUsuarioStr;
 
     $dup = $db->prepare(
         'SELECT id FROM fidelidade_movimentacao WHERE id_reserva = ? AND tipo = ? LIMIT 1'
     );
-    $dup->execute([$idReserva, FIDELIDADE_TIPO_CREDITO_RESERVA]);
+    $dup->execute([$idReservaStr, FIDELIDADE_TIPO_CREDITO_RESERVA]);
     if ($dup->fetch()) {
         return true;
     }
 
     $desc = sprintf(
         'Pontos por reserva paga (cód. %s)',
-        $reserva['codigo_reserva'] ?? (string) $idReserva
+        $reserva['codigo_reserva'] ?? $idReservaStr
     );
 
     try {
@@ -101,12 +106,98 @@ function fidelidade_creditar_por_pagamento_aprovado(PDO $db, int $idReserva, flo
             'INSERT INTO fidelidade_movimentacao (id_usuario, pontos, tipo, descricao, id_reserva, id_resgate)
              VALUES (?, ?, ?, ?, ?, NULL)'
         );
-        $ins->execute([$idUsuario, $pontos, FIDELIDADE_TIPO_CREDITO_RESERVA, $desc, $idReserva]);
+        $ins->execute([$idUsuario, $pontos, FIDELIDADE_TIPO_CREDITO_RESERVA, $desc, $idReservaStr]);
     } catch (Throwable $e) {
         return false;
     }
 
     return true;
+}
+
+/**
+ * Converte valor monetário gravado como VARCHAR (ex.: reservas / pagamentos).
+ */
+function fidelidade_parse_valor_moeda(?string $valor): float
+{
+    if ($valor === null || trim($valor) === '') {
+        return 0.0;
+    }
+
+    return (float) str_replace(',', '.', preg_replace('/[^\d.,-]/', '', $valor));
+}
+
+/**
+ * Cron: localiza reservas pagas (pagamento approved) sem crédito `credito_reserva_app`,
+ * com `valor_reserva_total` preenchido e cupom diferente de FIDELIDADE.
+ *
+ * @return array{ok:bool, processados:int, falhas:int, total_encontrados:int, itens:array<int, array{id_reserva:string, ok:bool, valor_usado:float}>}
+ */
+function fidelidade_cron_creditos_reservas_pagas(PDO $db): array
+{
+    if (!fidelidade_tabelas_existem($db)) {
+        return [
+            'ok' => false,
+            'message' => 'Tabelas de fidelidade indisponíveis.',
+            'processados' => 0,
+            'falhas' => 0,
+            'total_encontrados' => 0,
+            'itens' => [],
+        ];
+    }
+
+    $sql = 'SELECT r.id AS id_reserva, r.valor_reserva_total, lp.pagamento_valor
+        FROM reservas r
+        INNER JOIN (
+            SELECT p1.id_reserva, p1.id, p1.pagamento_valor
+            FROM pagamentos p1
+            INNER JOIN (
+                SELECT id_reserva, MAX(id) AS max_id
+                FROM pagamentos
+                WHERE pagamento_status = \'approved\'
+                GROUP BY id_reserva
+            ) t ON t.max_id = p1.id AND t.id_reserva = p1.id_reserva
+        ) lp ON lp.id_reserva = r.id
+        LEFT JOIN fidelidade_movimentacao m
+            ON m.id_reserva = r.id AND m.tipo = ?
+        WHERE r.valor_reserva_total IS NOT NULL
+          AND (r.cupom_reserva IS NULL OR r.cupom_reserva <> \'FIDELIDADE\')
+          AND m.id IS NULL
+        ORDER BY r.id ASC';
+
+    $st = $db->prepare($sql);
+    $st->execute([FIDELIDADE_TIPO_CREDITO_RESERVA]);
+    $rows = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+    $processados = 0;
+    $falhas = 0;
+    $itens = [];
+
+    foreach ($rows as $row) {
+        $idReserva = (string) ($row['id_reserva'] ?? '');
+        $vPag = fidelidade_parse_valor_moeda(isset($row['pagamento_valor']) ? (string) $row['pagamento_valor'] : null);
+        $vTot = fidelidade_parse_valor_moeda(isset($row['valor_reserva_total']) ? (string) $row['valor_reserva_total'] : null);
+        $valorUsado = $vPag > 0 ? $vPag : $vTot;
+
+        $ok = fidelidade_creditar_por_pagamento_aprovado($db, $idReserva, $valorUsado);
+        if ($ok) {
+            $processados++;
+        } else {
+            $falhas++;
+        }
+        $itens[] = [
+            'id_reserva' => $idReserva,
+            'ok' => $ok,
+            'valor_usado' => $valorUsado,
+        ];
+    }
+
+    return [
+        'ok' => true,
+        'processados' => $processados,
+        'falhas' => $falhas,
+        'total_encontrados' => count($rows),
+        'itens' => $itens,
+    ];
 }
 
 function fidelidade_pontos_necessarios_para_valor(float $valorReais): int

@@ -1,9 +1,4 @@
 <?php
-/**
- * Webhook / notificação Mercado Pago: atualiza `pagamento_status`.
- * Quando status = approved, credita pontos de fidelidade (fidelidade_creditar_por_pagamento_aprovado).
- * Reservas pagas só com pontos não passam por aqui — tratadas em pagamento_preference.php.
- */
 include('../config/config.php');
 
     header("Access-Control-Allow-Origin: *");
@@ -37,20 +32,21 @@ include('../config/config.php');
         $response = curl_exec($curl);
         curl_close($curl);
 
-        $payment = json_decode($response, true); // Decodifica a resposta JSON para um array associativo
+        $payment = json_decode($response, true, 512, JSON_BIGINT_AS_STRING);
 
         if(isset($payment['id'])){
           
-          $external_reference = $payment['external_reference'];
+          $external_reference = isset($payment['external_reference']) ? trim((string) $payment['external_reference']) : '';
           $pagamento_status = $payment['status'];
+
+          $pid = (string) $payment['id'];
 
           $dados_pagamento = array($payment['status']);
           $sql_pagamento = $db->prepare("UPDATE `pagamentos` SET `pagamento_status` = ? WHERE `pagamento_id` = ?");
-          $sql_pagamento->execute([$payment['status'], $payment['id']]);
+          $sql_pagamento->execute([$payment['status'], $pid]);
 
-          if ($pagamento_status === 'approved' && function_exists('fidelidade_creditar_por_pagamento_aprovado')) {
+          if ($pagamento_status === 'approved') {
 
-              $pid = (string) $payment['id'];
               $q = $db->prepare('SELECT id_reserva, pagamento_valor FROM pagamentos WHERE pagamento_id = ? LIMIT 1');
               $q->execute([$pid]);
               $rowPag = $q->fetch(PDO::FETCH_ASSOC);
@@ -59,13 +55,35 @@ include('../config/config.php');
                   $q2->execute([(int) $payment['id']]);
                   $rowPag = $q2->fetch(PDO::FETCH_ASSOC);
               }
+              if (!$rowPag && $external_reference !== '') {
+                  $q3 = $db->prepare('SELECT id_reserva, pagamento_valor FROM pagamentos WHERE external_reference = ? ORDER BY id DESC LIMIT 1');
+                  $q3->execute([$external_reference]);
+                  $rowPag = $q3->fetch(PDO::FETCH_ASSOC);
+              }
 
-              if (!empty($rowPag['id_reserva'])) {
-                  $valor = (float) ($rowPag['pagamento_valor'] ?? 0);
+              $idReservaKey = null;
+              if ($rowPag && isset($rowPag['id_reserva']) && $rowPag['id_reserva'] !== '' && $rowPag['id_reserva'] !== null) {
+                  $idReservaKey = (string) $rowPag['id_reserva'];
+              } elseif ($external_reference !== '') {
+                  $sr = $db->prepare(
+                      'SELECT id FROM reservas WHERE codigo_reserva = ? OR external_reference = ? ORDER BY id DESC LIMIT 1'
+                  );
+                  $sr->execute([$external_reference, $external_reference]);
+                  $found = $sr->fetchColumn();
+                  if ($found !== false && $found !== null && $found !== '') {
+                      $idReservaKey = (string) $found;
+                  }
+              }
+
+              if ($idReservaKey !== null && $idReservaKey !== '' && $idReservaKey !== '0') {
+                  $valor = 0.0;
+                  if ($rowPag && isset($rowPag['pagamento_valor']) && $rowPag['pagamento_valor'] !== '' && $rowPag['pagamento_valor'] !== null) {
+                      $valor = (float) str_replace(',', '.', preg_replace('/[^\d.,-]/', '', (string) $rowPag['pagamento_valor']));
+                  }
                   if ($valor <= 0 && isset($payment['transaction_amount'])) {
                       $valor = (float) $payment['transaction_amount'];
                   }
-                  fidelidade_creditar_por_pagamento_aprovado($db, (int) $rowPag['id_reserva'], $valor);
+                  fidelidade_creditar_por_pagamento_aprovado($db, $idReservaKey, $valor);
               }
 
           }
