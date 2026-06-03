@@ -10,6 +10,5 @@ backup
 view/assets/dist
 log_error
 error_log
-/app
 INTEGRACAO-SIS.md
 /database
