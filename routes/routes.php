@@ -9,6 +9,7 @@ require  __DIR__ . '/suites.php';
 require  __DIR__ . '/equipe.php';
 require  __DIR__ . '/cargos.php';
 require  __DIR__ . '/reservas.php';
+require  __DIR__ . '/sis.php';
 require  __DIR__ . '/cardapio.php';
 require  __DIR__ . '/clientes.php';
 require  __DIR__ . '/config.php';

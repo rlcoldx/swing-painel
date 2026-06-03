@@ -105,6 +105,34 @@
 	                    </div>
 	                </div>
 
+	                {% if sis_ativo %}
+	                <div class="card">
+	                    <div class="card-header py-2">Sistema SISMOTEL</div>
+	                    <div class="card-body">
+	                        <label class="form-label">Categoria SIS</label>
+	                        <select name="sis_suite" id="sis_suite" class="form-control">
+	                            <option value="">Selecione a categoria</option>
+	                            {% for cat in sis_categories %}
+	                            <option value="{{ cat.id }}" data-total="{{ cat.total }}" data-free="{{ cat.free }}"
+	                                {{ suite.sis_suite == cat.id ? 'selected' : '' }}>
+	                                {{ cat.name }} ({{ cat.free }}/{{ cat.total }})
+	                            </option>
+	                            {% endfor %}
+	                        </select>
+	                        <div class="row mt-2">
+	                            <div class="col-6">
+	                                <label class="form-label">Total de unidades</label>
+	                                <input type="number" name="quantidade" id="sis_quantidade" class="form-control" value="{{ suite.quantidade }}" readonly>
+	                            </div>
+	                            <div class="col-6">
+	                                <label class="form-label">Disponíveis</label>
+	                                <input type="number" name="disponibilidade" id="sis_disponibilidade" class="form-control" value="{{ suite.disponibilidade }}" readonly>
+	                            </div>
+	                        </div>
+	                    </div>
+	                </div>
+	                {% endif %}
+
 	                <div class="card repeater">
                        
 					    <div class="card-header py-2">

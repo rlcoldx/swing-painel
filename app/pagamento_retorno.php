@@ -84,8 +84,32 @@ include('../config/config.php');
                       $valor = (float) $payment['transaction_amount'];
                   }
                   fidelidade_creditar_por_pagamento_aprovado($db, $idReservaKey, $valor);
+
+                  $stRes = $db->prepare('SELECT integracao FROM reservas WHERE id = ? LIMIT 1');
+                  $stRes->execute([$idReservaKey]);
+                  $resRow = $stRes->fetch(PDO::FETCH_ASSOC);
+                  if ($resRow && ($resRow['integracao'] ?? '') === 'sis') {
+                      $updSis = $db->prepare("UPDATE reservas SET status_sis = 6, status_reserva = 'Aceito' WHERE id = ?");
+                      $updSis->execute([$idReservaKey]);
+                  }
               }
 
+          }
+
+          if (in_array($pagamento_status, ['rejected', 'cancelled', 'refunded', 'chargedback', 'charged_back'], true)) {
+              $q = $db->prepare('SELECT id_reserva FROM pagamentos WHERE pagamento_id = ? LIMIT 1');
+              $q->execute([$pid]);
+              $rowPag = $q->fetch(PDO::FETCH_ASSOC);
+              if ($rowPag && !empty($rowPag['id_reserva'])) {
+                  $stRes = $db->prepare('SELECT integracao, id_reserva_sis FROM reservas WHERE id = ? LIMIT 1');
+                  $stRes->execute([$rowPag['id_reserva']]);
+                  $resRow = $stRes->fetch(PDO::FETCH_ASSOC);
+                  if ($resRow && ($resRow['integracao'] ?? '') === 'sis' && !empty($resRow['id_reserva_sis'])) {
+                      sis_cancelar_reserva((int) $resRow['id_reserva_sis']);
+                      $updSis = $db->prepare("UPDATE reservas SET status_sis = 8, status_reserva = 'Cancelado' WHERE id = ?");
+                      $updSis->execute([$rowPag['id_reserva']]);
+                  }
+              }
           }
 
         }

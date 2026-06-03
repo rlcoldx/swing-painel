@@ -75,4 +75,18 @@ class ReservaController extends Controller
 		
   	}
 
+	public function check_reservas_expiradas($params)
+	{
+		$this->setParams($params);
+
+		$reserva = new Reserva();
+		$expiradas = $reserva->checkReservasExpiradas()->getResult();
+
+		if ($expiradas) {
+			foreach ($expiradas as $row) {
+				$reserva->cancelarReservaExpirada($row);
+			}
+		}
+	}
+
 }

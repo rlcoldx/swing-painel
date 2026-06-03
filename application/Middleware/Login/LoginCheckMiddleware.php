@@ -11,8 +11,13 @@ class LoginCheckMiddleware extends Middleware
     
     public function run()
     {
+        $url = $this->getCurrentUrl();
+        if (strpos($url, 'api') !== false || strpos($url, 'check-expiradas') !== false) {
+            return;
+        }
+
         $loginSession = new LoginSession();
-        if ( !$loginSession->userIsLogged() AND (strpos($this->getCurrentUrl(), 'login') === false)) {
+        if ( !$loginSession->userIsLogged() AND (strpos($url, 'login') === false)) {
            header('Location: '. DOMAIN .'/login');
         }
     }

@@ -5,9 +5,23 @@ namespace Agencia\Close\Controllers\Suites;
 use Agencia\Close\Controllers\Controller;
 use Agencia\Close\Models\Suites\Suites;
 use Agencia\Close\Enums\Permissions\ProductsPermissions;
+use Agencia\Close\Services\Sis\CategoriesSis;
 
 class SuitesController extends Controller
 {
+  private function sisViewData(): array
+  {
+    if (!defined('SIS_ATIVO') || !SIS_ATIVO) {
+      return ['sis_ativo' => false, 'sis_categories' => []];
+    }
+
+    $categories = (new CategoriesSis())->listCategories();
+    return [
+      'sis_ativo' => true,
+      'sis_categories' => $categories['result'] ?? [],
+    ];
+  }
+
   public function tempermissao() {
     echo 'Tem permissao';
     $this->requirePermission(ProductsPermissions::$listProduct);
@@ -33,7 +47,10 @@ class SuitesController extends Controller
   public function criar($params)
   {
     $this->setParams($params);
-    $this->render('pages/suites/form.twig', ['titulo' => 'Criar Suíte']);
+    $this->render('pages/suites/form.twig', array_merge(
+      ['titulo' => 'Criar Suíte'],
+      $this->sisViewData()
+    ));
   }
 
   public function editar($params)
@@ -50,7 +67,10 @@ class SuitesController extends Controller
     $imagens = new Suites();
     $imagem = $imagens->getSuiteImages($this->params['id'])->getResult();
 
-    $this->render('pages/suites/form.twig', ['titulo' => 'Editar Suíte', 'suite' => $suite, 'precos' => $precos, 'imagens' => $imagem]);
+    $this->render('pages/suites/form.twig', array_merge(
+      ['titulo' => 'Editar Suíte', 'suite' => $suite, 'precos' => $precos, 'imagens' => $imagem],
+      $this->sisViewData()
+    ));
   }
 
   //CRIAR O PRODUTO EM RASCUNHO

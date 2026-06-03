@@ -92,6 +92,11 @@ if (isset($_POST['token'])) {
 
 $response = $rawMp ? json_decode($rawMp) : null;
 
+$pagamento_status = null;
+if ($response && isset($response->status)) {
+	$pagamento_status = $response->status;
+}
+
 if ($response && isset($response->id) && $reserva) {
 
 	if (!empty($_POST['installments'])) {
@@ -136,5 +141,15 @@ if ($response && isset($response->id) && $reserva) {
 			'UPDATE `pagamentos` SET `id_user` = ?, `id_reserva` = ?, `pagamento_id` = ?, `pagamento_metodo` = ?, `pagamento_valor` = ?, `pagamento_parcelas` = ?, `pagamento_status` = ? WHERE `id_user` = ? AND `external_reference` = ?'
 		);
 		$sql_pagamento->execute($dados_pagamento);
+	}
+}
+
+if ($reserva && ($reserva['integracao'] ?? '') === 'sis' && !empty($reserva['id_reserva_sis'])) {
+	$mpErro = !$response || !isset($response->id);
+	$mpRecusado = in_array($pagamento_status, ['rejected', 'cancelled', 'refunded', 'charged_back'], true);
+	if ($mpErro || $mpRecusado) {
+		sis_cancelar_reserva((int) $reserva['id_reserva_sis']);
+		$upd = $db->prepare("UPDATE reservas SET status_sis = 8, status_reserva = 'Cancelado' WHERE id = ?");
+		$upd->execute([$reserva['id']]);
 	}
 }

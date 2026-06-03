@@ -136,6 +136,12 @@ $(document).ready(function () {
         $('#price_chance').val('sim');
     });
 
+    $('#sis_suite').on('change', function () {
+        var opt = $(this).find('option:selected');
+        $('#sis_quantidade').val(opt.data('total') || '');
+        $('#sis_disponibilidade').val(opt.data('free') || '');
+    });
+
 });
 
 function reloadScript() {

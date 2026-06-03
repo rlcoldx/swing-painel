@@ -40,6 +40,7 @@ Há três modos de integração por motel (`usuarios.integracao`):
 | `N` | Sem integração — `app/reserva_comum.php` |
 | `api` | API interna Lugo — `app/reserva_api.php` + `application/Models/Api/` |
 | `sis` | SISMOTEL — `app/reserva_sis.php` + arquivos deste documento |
+PS: todas as suites ja estão como "sis"
 
 Este documento detalha **`sis`** nas duas camadas.
 
@@ -50,16 +51,18 @@ Este documento detalha **`sis`** nas duas camadas.
 Arquivo: `config/config.php`
 
 ```php
+define('SIS_ATIVO', TRUE);
 define('SIS_API', 'https://api.sismotel.com.br');
+define('SIS_KEY', 'e630218300a03f94a4b6eaea5ef88afe-1f41ac68535aa65f6c74dd2548ef4e57');
 define('SOFTHOUSE', 'c283ecc655bf074fc99ff95f1d51dc6c-721b224025ef117caabeaf76d58f3d50');
 ```
 
 | Constante | Uso |
 |-----------|-----|
+| `SIS_ATIVO` | Se for TRUE esta ligado a integração com o SIS |
 | `SIS_API` | Base URL de todas as chamadas HTTP ao SIS |
+| `SIS_KEY` | o KEY de integração com o SIS (O KEY NÃO ESTA NA TABELA USUARIO, COMO É UM UNICO MOTEL ELE ESTA NO CONFIG.PHP) |
 | `SOFTHOUSE` | Identificador da softhouse; enviado em **todo** request ao SIS no header `softhouse` |
-
-> Em produção, mantenha `SOFTHOUSE` e tokens de motel fora do repositório (`.gitignore` no `config.php`).
 
 ---
 
@@ -707,3 +710,10 @@ public function cancelarReservaSis(int $idReservaSis, string $tokenMotel): void
 ---
 
 *Documento gerado com base no código do repositório Lugochat. Revise `SOFTHOUSE`, tokens e URLs ao portar para outro ambiente.*
+
+
+# Disponibilidade (a cada 1–5 min)
+curl -s "http://localhost/swing/api/sis/disponibilidade"
+
+# Reservas expiradas (a cada 5 min)
+curl -s "http://localhost/swing/reservas/check-expiradas"

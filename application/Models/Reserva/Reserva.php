@@ -103,6 +103,51 @@ class Reserva extends Model
         $update->ExeUpdate('reservas', $params, 'WHERE `id` = :id', "id={$id}");
         return $update;
     }
+
+    public function checkReservasExpiradas(): Read
+    {
+        $read = new Read();
+        $read->FullRead(
+            "SELECT r.*
+             FROM reservas AS r
+             LEFT JOIN (
+                SELECT p1.*
+                FROM pagamentos p1
+                INNER JOIN (
+                    SELECT id_reserva, MAX(id) AS id
+                    FROM pagamentos
+                    GROUP BY id_reserva
+                ) x ON x.id = p1.id
+             ) p ON p.id_reserva = r.id
+             WHERE r.status_reserva NOT IN ('Recusado', 'Cancelado')
+               AND (p.pagamento_status IS NULL OR p.pagamento_status <> 'approved')
+               AND r.date_create < DATE_SUB(NOW(), INTERVAL 20 MINUTE)
+             ORDER BY r.id ASC"
+        );
+        return $read;
+    }
+
+    public function cancelarReservaExpirada(array $reserva): void
+    {
+        $update = new Update();
+        $update->ExeUpdate(
+            'reservas',
+            ['status_reserva' => 'Cancelado'],
+            'WHERE `id` = :id',
+            'id=' . $reserva['id']
+        );
+
+        if (($reserva['integracao'] ?? '') === 'sis' && !empty($reserva['id_reserva_sis'])) {
+            sis_cancelar_reserva((int) $reserva['id_reserva_sis']);
+            $updateSis = new Update();
+            $updateSis->ExeUpdate(
+                'reservas',
+                ['status_sis' => 8],
+                'WHERE `id` = :id',
+                'id=' . $reserva['id']
+            );
+        }
+    }
     
     
 }
