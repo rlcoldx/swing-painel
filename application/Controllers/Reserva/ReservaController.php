@@ -79,6 +79,10 @@ class ReservaController extends Controller
 	{
 		$this->setParams($params);
 
+		if (!defined('SIS_ATIVO') || !SIS_ATIVO) {
+			return;
+		}
+
 		$reserva = new Reserva();
 		$expiradas = $reserva->checkReservasExpiradas()->getResult();
 
