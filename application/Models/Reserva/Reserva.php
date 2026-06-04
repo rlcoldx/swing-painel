@@ -121,7 +121,7 @@ class Reserva extends Model
              ) p ON p.id_reserva = r.id
              WHERE r.status_reserva NOT IN ('Recusado', 'Cancelado')
                AND (p.pagamento_status IS NULL OR p.pagamento_status <> 'approved')
-               AND r.date_create < DATE_SUB(NOW(), INTERVAL 20 MINUTE)
+               AND r.date_create < DATE_SUB(NOW(), INTERVAL 30 MINUTE)
              ORDER BY r.id ASC"
         );
         return $read;
