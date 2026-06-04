@@ -1,5 +1,4 @@
 /vendor
-/app
 uploads/
 config/config.php
 config/db.php

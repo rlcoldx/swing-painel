@@ -41897,7 +41897,7 @@ html[dir="rtl"]
   --bs-bg-opacity: 1;
   background-color: rgba(var(--bs-warning-rgb), var(--bs-bg-opacity)) !important;
 }
-.bg-Recusado {
+.bg-Recusado, .bg-Cancelado {
   --bs-bg-opacity: 1;
   background-color: rgba(var(--bs-danger-rgb), var(--bs-bg-opacity)) !important;
 }
