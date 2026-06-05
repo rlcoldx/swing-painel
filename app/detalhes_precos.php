@@ -12,7 +12,16 @@
 	    $json = "";
 	    $linhas = "";
 	
-		if(@$_POST['selectDate']){
+		if (@$_POST['selectDate']) {
+
+			$dataSelecionada = date('Y-m-d', strtotime($_POST['selectDate']));
+			$sql_fechamento = $db->prepare('SELECT 1 FROM data_fechamento WHERE date_fechamento = ? LIMIT 1');
+			$sql_fechamento->execute([$dataSelecionada]);
+
+			if ($sql_fechamento->fetchColumn()) {
+				echo json_encode([]);
+				exit;
+			}
 
         	$diaDaSemana = diaSemana($_POST['selectDate']);
 
