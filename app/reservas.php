@@ -35,7 +35,7 @@
 					$linhas[$i]['pagamento_status'] = traduzirStatusPagamento($reserva['status_reserva']);
 					if($reserva['status_reserva'] == 'Pendente'){
 						$linhas[$i]['link_page'] = 'espera';
-					}else if ($reserva['status_reserva'] == 'Recusado'){
+					}else if ($reserva['status_reserva'] == 'Recusado' || $reserva['status_reserva'] == 'Cancelado'){
 						$linhas[$i]['link_page'] = 'recusado';
 					}else{
 						$linhas[$i]['link_page'] = 'pagamento';

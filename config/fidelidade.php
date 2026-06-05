@@ -1,11 +1,4 @@
 <?php
-/**
- * Fidelidade — regras e acesso ao banco ($db PDO vindo de config.php).
- *
- * Crédito: pagamento aprovado (Mercado Pago ou fluxo já tratado no app).
- * Débito: reserva paga com pontos (preference fidelidade + coluna reservas.pontos_fidelidade).
- */
-
 if (!defined('FIDELIDADE_PONTOS_POR_REAL')) {
     define('FIDELIDADE_PONTOS_POR_REAL', 1);
 }
@@ -29,10 +22,6 @@ const FIDELIDADE_TIPO_RESGATE_ALIMENTO = 'debito_resgate_alimento';
 const FIDELIDADE_TIPO_RESGATE_BEBIDA = 'debito_resgate_bebida';
 const FIDELIDADE_TIPO_AJUSTE_ADMIN = 'ajuste_admin';
 
-/**
- * Tabelas de fidelidade existem e são legíveis.
- * Só memoriza sucesso; se a primeira tentativa falhar, tenta de novo depois (útil após criar tabelas).
- */
 function fidelidade_tabelas_existem(PDO $db): bool
 {
     static $confirmado = false;
@@ -64,9 +53,9 @@ function fidelidade_saldo_usuario(PDO $db, int $idUsuario): int
  * Credita pontos após pagamento aprovado (R$ 1,00 → 1 ponto, parte inteira).
  * Idempotente: uma linha por reserva + tipo credito_reserva_app.
  *
- * @param int|string $idReserva Aceita BIGINT de `reservas.id` (string evita limite do int no PHP).
+ * @param int $idReserva Aceita BIGINT de `reservas.id` (string evita limite do int no PHP).
  */
-function fidelidade_creditar_por_pagamento_aprovado(PDO $db, int|string $idReserva, float $valorPagoReal): bool
+function fidelidade_creditar_por_pagamento_aprovado(PDO $db, int $idReserva, float $valorPagoReal): bool
 {
     $idReservaStr = trim((string) $idReserva);
     if (!fidelidade_tabelas_existem($db) || $idReservaStr === '' || !ctype_digit($idReservaStr) || $idReservaStr === '0') {

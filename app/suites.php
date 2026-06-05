@@ -36,6 +36,10 @@
 				$precos = $sql_precos->fetch(PDO::FETCH_ASSOC);
 				$linhas[$i]['apartir'] = $precos['valor'];
 
+				if(SIS_ATIVO){
+					$linhas[$i]['integracao'] = 'S';
+				}
+
 			$i++;}
 
 			$json = $linhas;

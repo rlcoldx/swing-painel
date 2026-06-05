@@ -69,6 +69,41 @@ function limparCPF($cpf) {
     return $cpfLimpo;
 }
 
+/**
+ * Evita reserva duplicada por cliques repetidos no app (mesmos dados + Pendente).
+ */
+function reserva_existe_duplicada_pendente(PDO $db, array $post): ?array
+{
+    $campos = ['id_suite', 'chegada_reserva', 'periodo_reserva', 'valor_reserva', 'id_usuario'];
+    foreach ($campos as $campo) {
+        if (!isset($post[$campo]) || $post[$campo] === '' || $post[$campo] === null) {
+            return null;
+        }
+    }
+
+    $stmt = $db->prepare(
+        'SELECT * FROM reservas
+         WHERE id_suite = ?
+           AND chegada_reserva = ?
+           AND periodo_reserva = ?
+           AND valor_reserva = ?
+           AND id_usuario = ?
+           AND status_reserva = ?
+         ORDER BY id DESC
+         LIMIT 1'
+    );
+    $stmt->execute([
+        $post['id_suite'],
+        $post['chegada_reserva'],
+        $post['periodo_reserva'],
+        $post['valor_reserva'],
+        $post['id_usuario'],
+        'Pendente',
+    ]);
+
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $row ?: null;
+}
 
 function traduzirStatusPagamento($status) {
     $statusTraduzido = [
@@ -83,6 +118,7 @@ function traduzirStatusPagamento($status) {
         'Pendente' => 'Aprovação Pendente',
         'Aceito' => 'Aguardando Pagamento',
         'Recusado' => 'Reserva Recusada',
+        'Cancelado' => 'Reserva Cancelada',
     ];
 
     return $statusTraduzido[$status] ?? 'Status desconhecido';
@@ -101,6 +137,7 @@ function corStatusPagamento($status) {
         'Pendente' => 'warning',
         'Aceito' => 'info',
         'Recusado' => 'danger',
+        'Cancelado' => 'danger',
     ];
 
     return $classeBadge[$status] ?? 'dark';

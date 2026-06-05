@@ -1,9 +1,5 @@
 <?php
 
-if (function_exists('sis_headers')) {
-    return;
-}
-
 function sis_headers(): array
 {
     return [
@@ -39,14 +35,38 @@ function converterParaMinutos(string $periodo): int
 function sis_montar_date_scheduled(string $dataReserva, string $chegadaReserva, string $periodoReserva): string
 {
     $hora = converterHoraPara24h($chegadaReserva);
-    $data = $dataReserva;
+    $data = date('Y-m-d', strtotime($dataReserva));
     if (strcasecmp($periodoReserva, 'Pernoite') === 0) {
         $h = (int) substr($hora, 0, 2);
         if ($h >= 0 && $h <= 4) {
-            $data = date('Y-m-d', strtotime($dataReserva . ' +1 day'));
+            $data = date('Y-m-d', strtotime($data . ' +1 day'));
         }
     }
     return $data . ' ' . $hora;
+}
+
+function sis_extrair_mensagem_erro(array $sisResponse): string
+{
+    if (!empty($sisResponse['message']) && is_string($sisResponse['message'])) {
+        return $sisResponse['message'];
+    }
+    if (!empty($sisResponse['message']) && is_array($sisResponse['message'])) {
+        $partes = [];
+        foreach ($sisResponse['message'] as $campo => $msgs) {
+            if (is_array($msgs)) {
+                $partes[] = $campo . ': ' . implode(', ', $msgs);
+            } else {
+                $partes[] = (string) $msgs;
+            }
+        }
+        if ($partes) {
+            return implode(' | ', $partes);
+        }
+    }
+    if (!empty($sisResponse['errors']) && is_array($sisResponse['errors'])) {
+        return implode(' | ', array_map('strval', $sisResponse['errors']));
+    }
+    return 'Erro ao criar reserva no SIS';
 }
 
 function getStatusSis(int $situation): string
@@ -67,6 +87,29 @@ function getStatusSis(int $situation): string
         return 'Cancelado';
     }
     return 'Pendente';
+}
+
+function sis_extrair_situation(array $sisData, int $fallback = 0): int
+{
+    if (isset($sisData['result']['reservation']['situation'])) {
+        return (int) $sisData['result']['reservation']['situation'];
+    }
+    if (isset($sisData['result']['situation'])) {
+        return (int) $sisData['result']['situation'];
+    }
+    if (!empty($sisData['result']['logs']) && is_array($sisData['result']['logs'])) {
+        $logs = $sisData['result']['logs'];
+        $ultimo = end($logs);
+        if (isset($ultimo['situation'])) {
+            return (int) $ultimo['situation'];
+        }
+    }
+    return $fallback;
+}
+
+function sis_situacao_e_cancelada(int $situation): bool
+{
+    return getStatusSis($situation) === 'Cancelado';
 }
 
 function sis_cancelar_reserva($idReservaSis): void

@@ -110,41 +110,71 @@ class Reserva extends Model
         $read->FullRead(
             "SELECT r.*
              FROM reservas AS r
-             LEFT JOIN (
-                SELECT p1.*
-                FROM pagamentos p1
-                INNER JOIN (
-                    SELECT id_reserva, MAX(id) AS id
-                    FROM pagamentos
-                    GROUP BY id_reserva
-                ) x ON x.id = p1.id
-             ) p ON p.id_reserva = r.id
-             WHERE r.status_reserva NOT IN ('Recusado', 'Cancelado')
-               AND (p.pagamento_status IS NULL OR p.pagamento_status <> 'approved')
+             WHERE r.status_reserva = 'Pendente'
                AND r.date_create < DATE_SUB(NOW(), INTERVAL 30 MINUTE)
+               AND NOT EXISTS (
+                   SELECT 1
+                   FROM pagamentos p
+                   WHERE p.id_reserva = r.id
+                     AND p.pagamento_status = 'approved'
+               )
              ORDER BY r.id ASC"
         );
         return $read;
     }
 
+    public function reservaPodeSerCanceladaPorExpiracao(int $idReserva): bool
+    {
+        $read = new Read();
+        $read->FullRead(
+            "SELECT r.status_reserva, r.date_create,
+                    (SELECT COUNT(*) FROM pagamentos p
+                     WHERE p.id_reserva = r.id AND p.pagamento_status = 'approved') AS pagamento_aprovado
+             FROM reservas AS r
+             WHERE r.id = :id
+             LIMIT 1",
+            "id={$idReserva}"
+        );
+        $row = $read->getResult()[0] ?? null;
+        if (!$row) {
+            return false;
+        }
+        if (($row['status_reserva'] ?? '') !== 'Pendente') {
+            return false;
+        }
+        if ((int) ($row['pagamento_aprovado'] ?? 0) > 0) {
+            return false;
+        }
+        if (empty($row['date_create'])) {
+            return false;
+        }
+        return strtotime($row['date_create'] . ' +30 minutes') < time();
+    }
+
     public function cancelarReservaExpirada(array $reserva): void
     {
+        $idReserva = (int) ($reserva['id'] ?? 0);
+        if ($idReserva <= 0 || !$this->reservaPodeSerCanceladaPorExpiracao($idReserva)) {
+            return;
+        }
+
         $update = new Update();
         $update->ExeUpdate(
             'reservas',
             ['status_reserva' => 'Cancelado'],
-            'WHERE `id` = :id',
-            'id=' . $reserva['id']
+            'WHERE `id` = :id AND `status_reserva` = :status',
+            'id=' . $idReserva . '&status=Pendente'
         );
 
-        if (($reserva['integracao'] ?? '') === 'sis' && !empty($reserva['id_reserva_sis'])) {
-            sis_cancelar_reserva((int) $reserva['id_reserva_sis']);
+        $idReservaSis = (int) ($reserva['id_reserva_sis'] ?? 0);
+        if (defined('SIS_ATIVO') && SIS_ATIVO && $idReservaSis > 0) {
+            sis_cancelar_reserva($idReservaSis);
             $updateSis = new Update();
             $updateSis->ExeUpdate(
                 'reservas',
                 ['status_sis' => 8],
                 'WHERE `id` = :id',
-                'id=' . $reserva['id']
+                'id=' . $idReserva
             );
         }
     }

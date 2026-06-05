@@ -1,5 +1,21 @@
 <?php
 
+if (
+	!defined('RESERVAS_SAVE_BOOTSTRAP')
+	&& basename($_SERVER['SCRIPT_FILENAME'] ?? '') === 'reserva_sis.php'
+) {
+	require __DIR__ . '/reservas_save.php';
+	return;
+}
+
+if (!function_exists('sis_montar_date_scheduled')) {
+	if (!defined('SIS_API')) {
+		require_once __DIR__ . '/../config/config.php';
+	} else {
+		require_once __DIR__ . '/../config/sis.php';
+	}
+}
+
 $codigo_pedido = gerarCodigoPedido();
 
 if (empty($_POST['pontos_fidelidade'])) {
@@ -48,8 +64,7 @@ $payload = [
 $sisResponse = sis_criar_reserva($payload);
 
 if (empty($sisResponse['success']) || empty($sisResponse['result']['id'])) {
-	$message = $sisResponse['message'] ?? 'Erro ao criar reserva no SIS';
-	$json = ['result' => 'error', 'message' => $message];
+	$json = ['result' => 'error', 'message' => sis_extrair_mensagem_erro($sisResponse)];
 	return;
 }
 
@@ -74,12 +89,20 @@ $dados = [
 	'sis',
 	$idReservaSis,
 	$statusSis,
+	$_POST['origem']
 ];
 
 $sql_reserva = $db->prepare(
-	"INSERT INTO reservas (`id_suite`,`data_reserva`,`chegada_reserva`,`periodo_reserva`,`valor_reserva`,`codigo_reserva`,`cupom_reserva`,`id_usuario`,`nome`,`email`,`telefone`,`cpf`,`pontos_fidelidade`,`valor_reserva_total`,`integracao`,`id_reserva_sis`,`status_sis`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+	"INSERT INTO reservas (`id_suite`,`data_reserva`,`chegada_reserva`,`periodo_reserva`,`valor_reserva`,`codigo_reserva`,`cupom_reserva`,`id_usuario`,`nome`,`email`,`telefone`,`cpf`,`pontos_fidelidade`,`valor_reserva_total`,`integracao`,`id_reserva_sis`,`status_sis`,`origem`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 );
-$sql_reserva->execute($dados);
+
+try {
+	$sql_reserva->execute($dados);
+} catch (PDOException $e) {
+	sis_cancelar_reserva($idReservaSis);
+	$json = ['result' => 'error', 'message' => 'Erro ao gravar reserva local: ' . $e->getMessage()];
+	return;
+}
 
 if ($sql_reserva) {
 	$sql_last = $db->prepare("SELECT * FROM reservas WHERE `id_usuario` = ? ORDER BY id DESC LIMIT 1");

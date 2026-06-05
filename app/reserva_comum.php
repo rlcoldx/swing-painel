@@ -24,10 +24,11 @@ $dados = [
 	$_POST['cpf'],
 	$_POST['pontos_fidelidade'],
 	$_POST['valor_reserva_total'],
+	$_POST['origem']
 ];
 
 $sql_reserva = $db->prepare(
-	"INSERT INTO reservas (`id_suite`,`data_reserva`,`chegada_reserva`,`periodo_reserva`,`valor_reserva`,`codigo_reserva`,`cupom_reserva`,`id_usuario`,`nome`,`email`,`telefone`,`cpf`,`pontos_fidelidade`,`valor_reserva_total`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+	"INSERT INTO reservas (`id_suite`,`data_reserva`,`chegada_reserva`,`periodo_reserva`,`valor_reserva`,`codigo_reserva`,`cupom_reserva`,`id_usuario`,`nome`,`email`,`telefone`,`cpf`,`pontos_fidelidade`,`valor_reserva_total`,`origem`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 );
 $sql_reserva->execute($dados);
 

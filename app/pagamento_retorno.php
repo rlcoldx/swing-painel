@@ -50,6 +50,7 @@ include('../config/config.php');
               $q = $db->prepare('SELECT id_reserva, pagamento_valor FROM pagamentos WHERE pagamento_id = ? LIMIT 1');
               $q->execute([$pid]);
               $rowPag = $q->fetch(PDO::FETCH_ASSOC);
+              
               if (!$rowPag) {
                   $q2 = $db->prepare('SELECT id_reserva, pagamento_valor FROM pagamentos WHERE pagamento_id = ? LIMIT 1');
                   $q2->execute([(int) $payment['id']]);

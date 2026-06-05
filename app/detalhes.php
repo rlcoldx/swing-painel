@@ -30,6 +30,10 @@ if(@$_POST['token'] == TOKEN){
 
 			$linhas[$i]['imagens'] = $imagem;
 
+			if(SIS_ATIVO){
+				$linhas[$i]['integracao'] = 'S';
+			}
+
 		$i++;}
 		
 		$json = $linhas;
