@@ -29,7 +29,7 @@ if (!$check) {
 
 if ($check['status_reserva'] === 'Pendente' && !empty($check['date_create'])) {
 	$limite = strtotime($check['date_create'] . ' +30 minutes');
-	if (time() > $limite) {
+	if (time() > $limite && !reserva_tem_pagamento_aprovado($db, $check['id'])) {
 		$upd = $db->prepare("UPDATE reservas SET status_reserva = 'Cancelado' WHERE id = ?");
 		$upd->execute([$check['id']]);
 		$check['status_reserva'] = 'Cancelado';
@@ -50,8 +50,8 @@ if (($check['integracao'] ?? '') === 'sis' && $check['status_reserva'] === 'Pend
 if ($check['status_reserva'] === 'Aceito') {
 	$json = ['result' => 'OK'];
 } elseif ($check['status_reserva'] === 'Recusado' || $check['status_reserva'] === 'Cancelado') {
-	if (($check['integracao'] ?? '') === 'sis' && !empty($check['id_reserva_sis'])) {
-		sis_cancelar_reserva((int) $check['id_reserva_sis']);
+	sis_cancelar_reserva_se_permitido($db, $check);
+	if (reserva_pode_cancelar_no_sis($db, $check)) {
 		$upd = $db->prepare('UPDATE reservas SET status_sis = 8 WHERE id = ?');
 		$upd->execute([$check['id']]);
 	}

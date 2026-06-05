@@ -102,10 +102,15 @@ include('../config/config.php');
               $q->execute([$pid]);
               $rowPag = $q->fetch(PDO::FETCH_ASSOC);
               if ($rowPag && !empty($rowPag['id_reserva'])) {
-                  $stRes = $db->prepare('SELECT integracao, id_reserva_sis FROM reservas WHERE id = ? LIMIT 1');
+                  $stRes = $db->prepare('SELECT * FROM reservas WHERE id = ? LIMIT 1');
                   $stRes->execute([$rowPag['id_reserva']]);
                   $resRow = $stRes->fetch(PDO::FETCH_ASSOC);
-                  if ($resRow && ($resRow['integracao'] ?? '') === 'sis' && !empty($resRow['id_reserva_sis'])) {
+                  if (
+                      $resRow
+                      && ($resRow['integracao'] ?? '') === 'sis'
+                      && !empty($resRow['id_reserva_sis'])
+                      && reserva_pode_cancelar_no_sis($db, $resRow)
+                  ) {
                       sis_cancelar_reserva((int) $resRow['id_reserva_sis']);
                       $updSis = $db->prepare("UPDATE reservas SET status_sis = 8, status_reserva = 'Cancelado' WHERE id = ?");
                       $updSis->execute([$rowPag['id_reserva']]);

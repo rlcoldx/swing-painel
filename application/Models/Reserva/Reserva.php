@@ -168,14 +168,18 @@ class Reserva extends Model
 
         $idReservaSis = (int) ($reserva['id_reserva_sis'] ?? 0);
         if (defined('SIS_ATIVO') && SIS_ATIVO && $idReservaSis > 0) {
-            sis_cancelar_reserva($idReservaSis);
-            $updateSis = new Update();
-            $updateSis->ExeUpdate(
-                'reservas',
-                ['status_sis' => 8],
-                'WHERE `id` = :id',
-                'id=' . $idReserva
-            );
+            $sisData = sis_get_reservation($idReservaSis);
+            $situation = sis_extrair_situation($sisData, (int) ($reserva['status_sis'] ?? 0));
+            if (!sis_situacao_e_paga_ou_confirmada($situation)) {
+                sis_cancelar_reserva($idReservaSis);
+                $updateSis = new Update();
+                $updateSis->ExeUpdate(
+                    'reservas',
+                    ['status_sis' => 8],
+                    'WHERE `id` = :id',
+                    'id=' . $idReserva
+                );
+            }
         }
     }
     

@@ -112,6 +112,58 @@ function sis_situacao_e_cancelada(int $situation): bool
     return getStatusSis($situation) === 'Cancelado';
 }
 
+function sis_situacao_e_paga_ou_confirmada(int $situation): bool
+{
+    return in_array($situation, [4, 6, 10, 11, 12, 15], true);
+}
+
+function reserva_tem_pagamento_aprovado(PDO $db, $idReserva): bool
+{
+    $st = $db->prepare(
+        "SELECT 1 FROM pagamentos WHERE id_reserva = ? AND pagamento_status = 'approved' LIMIT 1"
+    );
+    $st->execute([(int) $idReserva]);
+    return (bool) $st->fetchColumn();
+}
+
+function reserva_pode_cancelar_no_sis(PDO $db, array $reserva): bool
+{
+    $idReserva = (int) ($reserva['id'] ?? 0);
+    if ($idReserva <= 0) {
+        return false;
+    }
+
+    if (reserva_tem_pagamento_aprovado($db, $idReserva)) {
+        return false;
+    }
+
+    $idSis = (int) ($reserva['id_reserva_sis'] ?? 0);
+    if ($idSis <= 0 || !defined('SIS_ATIVO') || !SIS_ATIVO) {
+        return true;
+    }
+
+    $sisData = sis_get_reservation($idSis);
+    $situation = sis_extrair_situation($sisData, (int) ($reserva['status_sis'] ?? 0));
+
+    if (sis_situacao_e_paga_ou_confirmada($situation)) {
+        return false;
+    }
+
+    return true;
+}
+
+function sis_cancelar_reserva_se_permitido(PDO $db, array $reserva): void
+{
+    if (!reserva_pode_cancelar_no_sis($db, $reserva)) {
+        return;
+    }
+
+    $id = (int) ($reserva['id_reserva_sis'] ?? 0);
+    if ($id > 0) {
+        sis_cancelar_reserva($id);
+    }
+}
+
 function sis_cancelar_reserva($idReservaSis): void
 {
     if (!defined('SIS_ATIVO') || !SIS_ATIVO) {

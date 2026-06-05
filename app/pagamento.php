@@ -147,7 +147,7 @@ if ($response && isset($response->id) && $reserva) {
 if ($reserva && ($reserva['integracao'] ?? '') === 'sis' && !empty($reserva['id_reserva_sis'])) {
 	$mpErro = !$response || !isset($response->id);
 	$mpRecusado = in_array($pagamento_status, ['rejected', 'cancelled', 'refunded', 'charged_back'], true);
-	if ($mpErro || $mpRecusado) {
+	if (($mpErro || $mpRecusado) && reserva_pode_cancelar_no_sis($db, $reserva)) {
 		sis_cancelar_reserva((int) $reserva['id_reserva_sis']);
 		$upd = $db->prepare("UPDATE reservas SET status_sis = 8, status_reserva = 'Cancelado' WHERE id = ?");
 		$upd->execute([$reserva['id']]);

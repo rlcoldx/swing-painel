@@ -40,7 +40,10 @@ if (defined('SIS_ATIVO') && SIS_ATIVO && $idReservaSis > 0) {
 	$sisData = sis_get_reservation($idReservaSis);
 	$situation = sis_extrair_situation($sisData, (int) ($check['status_sis'] ?? 0));
 
-	if (sis_situacao_e_cancelada($situation) && ($check['pagamento_status'] ?? null) !== 'approved') {
+	if (
+		sis_situacao_e_cancelada($situation)
+		&& reserva_pode_cancelar_no_sis($db, $check)
+	) {
 		$upd = $db->prepare("UPDATE reservas SET status_reserva = 'Cancelado', status_sis = ? WHERE id = ?");
 		$upd->execute([$situation, $check['id']]);
 		echo json_encode(['result' => 'REFUSED']);

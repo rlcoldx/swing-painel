@@ -37,6 +37,14 @@ function reserva_check_sis_sync(PDO $db, array &$check): void
 	}
 
 	$statusReserva = getStatusSis($situation);
+
+	if (
+		in_array($statusReserva, ['Cancelado', 'Recusado'], true)
+		&& reserva_tem_pagamento_aprovado($db, (int) $check['id'])
+	) {
+		return;
+	}
+
 	$upd = $db->prepare('UPDATE reservas SET status_sis = ?, status_reserva = ? WHERE id = ?');
 	$upd->execute([$situation, $statusReserva, $check['id']]);
 	$check['status_reserva'] = $statusReserva;
