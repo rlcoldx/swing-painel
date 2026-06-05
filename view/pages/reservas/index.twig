@@ -64,6 +64,7 @@
                         <thead>
                             <tr>
                                 <th class="d-none" width="50"></th>
+                                <th>Código</th>
                                 <th>Cliente</th>
                                 <th>Reserva</th>
                                 <th>Período</th>
@@ -76,6 +77,10 @@
                             {% for reserva in reservas %}
                             <tr class="produto-{{ reserva.id }}">
                                 <td class="d-none" width="50">#{{ loop.index }}</td>
+                                <td>
+                                    <div class="fw-bold fs-6" title="Código da reserva no sistema">{{ reserva.codigo_reserva }}</div>
+                                    <div title="ID da reserva no SIS (SISMOTEL)">{{ reserva.id_reserva_sis ? reserva.id_reserva_sis : '—' }}</div>
+                                </td>
                                 <td>
                                     <div class="fw-bold fs-6">{{ reserva.nome }}</div>
                                     <div>{{ reserva.telefone }}</div>                                
