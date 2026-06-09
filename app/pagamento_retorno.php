@@ -98,22 +98,50 @@ include('../config/config.php');
           }
 
           if (in_array($pagamento_status, ['rejected', 'cancelled', 'refunded', 'chargedback', 'charged_back'], true)) {
+
+              $rowPag = null;
               $q = $db->prepare('SELECT id_reserva FROM pagamentos WHERE pagamento_id = ? LIMIT 1');
               $q->execute([$pid]);
               $rowPag = $q->fetch(PDO::FETCH_ASSOC);
+
+              if (!$rowPag) {
+                  $q2 = $db->prepare('SELECT id_reserva FROM pagamentos WHERE pagamento_id = ? LIMIT 1');
+                  $q2->execute([(int) $payment['id']]);
+                  $rowPag = $q2->fetch(PDO::FETCH_ASSOC);
+              }
+              if (!$rowPag && $external_reference !== '') {
+                  $q3 = $db->prepare('SELECT id_reserva FROM pagamentos WHERE external_reference = ? ORDER BY id DESC LIMIT 1');
+                  $q3->execute([$external_reference]);
+                  $rowPag = $q3->fetch(PDO::FETCH_ASSOC);
+              }
+
+              $idReservaKey = null;
               if ($rowPag && !empty($rowPag['id_reserva'])) {
+                  $idReservaKey = (int) $rowPag['id_reserva'];
+              } elseif ($external_reference !== '') {
+                  $sr = $db->prepare(
+                      'SELECT id FROM reservas WHERE codigo_reserva = ? OR external_reference = ? ORDER BY id DESC LIMIT 1'
+                  );
+                  $sr->execute([$external_reference, $external_reference]);
+                  $found = $sr->fetchColumn();
+                  if ($found !== false && $found !== null && $found !== '') {
+                      $idReservaKey = (int) $found;
+                  }
+              }
+
+              if ($idReservaKey > 0) {
                   $stRes = $db->prepare('SELECT * FROM reservas WHERE id = ? LIMIT 1');
-                  $stRes->execute([$rowPag['id_reserva']]);
+                  $stRes->execute([$idReservaKey]);
                   $resRow = $stRes->fetch(PDO::FETCH_ASSOC);
-                  if (
-                      $resRow
-                      && ($resRow['integracao'] ?? '') === 'sis'
-                      && !empty($resRow['id_reserva_sis'])
-                      && reserva_pode_cancelar_no_sis($db, $resRow)
-                  ) {
-                      sis_cancelar_reserva((int) $resRow['id_reserva_sis']);
-                      $updSis = $db->prepare("UPDATE reservas SET status_sis = 8, status_reserva = 'Cancelado' WHERE id = ?");
-                      $updSis->execute([$rowPag['id_reserva']]);
+
+                  if ($resRow) {
+                      $updRes = $db->prepare("UPDATE reservas SET status_reserva = 'Cancelado', status_sis = 8 WHERE id = ?");
+                      $updRes->execute([$idReservaKey]);
+
+                      $idReservaSis = (int) ($resRow['id_reserva_sis'] ?? 0);
+                      if (defined('SIS_ATIVO') && SIS_ATIVO && $idReservaSis > 0) {
+                          sis_cancelar_reserva($idReservaSis);
+                      }
                   }
               }
           }
