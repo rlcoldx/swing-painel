@@ -106,12 +106,15 @@ class Reserva extends Model
 
     public function checkReservasExpiradas(): Read
     {
+        $minutos = function_exists('reserva_pagamento_expiracao_minutos')
+            ? reserva_pagamento_expiracao_minutos()
+            : 30;
         $read = new Read();
         $read->FullRead(
             "SELECT r.*
              FROM reservas AS r
-             WHERE r.status_reserva = 'Pendente'
-               AND r.date_create < DATE_SUB(NOW(), INTERVAL 30 MINUTE)
+             WHERE r.status_reserva IN ('Pendente', 'Aceito')
+               AND r.date_create < DATE_SUB(NOW(), INTERVAL {$minutos} MINUTE)
                AND NOT EXISTS (
                    SELECT 1
                    FROM pagamentos p
@@ -139,7 +142,7 @@ class Reserva extends Model
         if (!$row) {
             return false;
         }
-        if (($row['status_reserva'] ?? '') !== 'Pendente') {
+        if (!in_array($row['status_reserva'] ?? '', ['Pendente', 'Aceito'], true)) {
             return false;
         }
         if ((int) ($row['pagamento_aprovado'] ?? 0) > 0) {
@@ -148,39 +151,44 @@ class Reserva extends Model
         if (empty($row['date_create'])) {
             return false;
         }
-        return strtotime($row['date_create'] . ' +30 minutes') < time();
+        $minutos = function_exists('reserva_pagamento_expiracao_minutos')
+            ? reserva_pagamento_expiracao_minutos()
+            : 30;
+        return strtotime($row['date_create'] . ' +' . $minutos . ' minutes') < time();
     }
 
-    public function cancelarReservaExpirada(array $reserva): void
+    public function cancelarReservaExpirada(array $reserva): bool
     {
         $idReserva = (int) ($reserva['id'] ?? 0);
         if ($idReserva <= 0 || !$this->reservaPodeSerCanceladaPorExpiracao($idReserva)) {
-            return;
+            return false;
         }
 
         $update = new Update();
         $update->ExeUpdate(
             'reservas',
             ['status_reserva' => 'Cancelado'],
-            'WHERE `id` = :id AND `status_reserva` = :status',
-            'id=' . $idReserva . '&status=Pendente'
+            'WHERE `id` = :id AND `status_reserva` IN (\'Pendente\', \'Aceito\')',
+            'id=' . $idReserva
         );
+
+        if (!$update->getResult()) {
+            return false;
+        }
 
         $idReservaSis = (int) ($reserva['id_reserva_sis'] ?? 0);
         if (defined('SIS_ATIVO') && SIS_ATIVO && $idReservaSis > 0) {
-            $sisData = sis_get_reservation($idReservaSis);
-            $situation = sis_extrair_situation($sisData, (int) ($reserva['status_sis'] ?? 0));
-            if (!sis_situacao_e_paga_ou_confirmada($situation)) {
-                sis_cancelar_reserva($idReservaSis);
-                $updateSis = new Update();
-                $updateSis->ExeUpdate(
-                    'reservas',
-                    ['status_sis' => 8],
-                    'WHERE `id` = :id',
-                    'id=' . $idReserva
-                );
-            }
+            sis_cancelar_reserva($idReservaSis);
+            $updateSis = new Update();
+            $updateSis->ExeUpdate(
+                'reservas',
+                ['status_sis' => 8],
+                'WHERE `id` = :id',
+                'id=' . $idReserva
+            );
         }
+
+        return true;
     }
     
     

@@ -20,6 +20,16 @@ $rawMp = null;
 
 if (@$_POST['payment_method_id'] === 'pix') {
 
+	$pixBody = [
+		'transaction_amount' => (float) $_POST['transaction_amount'],
+		'payment_method_id' => 'pix',
+		'date_of_expiration' => mp_reserva_date_of_expiration(),
+		'external_reference' => (string) ($reserva['codigo_reserva'] ?? ''),
+		'payer' => [
+			'email' => (string) ($_POST['payer']['email'] ?? ''),
+		],
+	];
+
 	$curl = curl_init();
 	curl_setopt_array($curl, [
 		CURLOPT_URL => 'https://api.mercadopago.com/v1/payments',
@@ -30,13 +40,7 @@ if (@$_POST['payment_method_id'] === 'pix') {
 		CURLOPT_FOLLOWLOCATION => true,
 		CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
 		CURLOPT_CUSTOMREQUEST => 'POST',
-		CURLOPT_POSTFIELDS => '{
-					"transaction_amount": ' . $_POST['transaction_amount'] . ',
-					"payment_method_id": "' . $_POST['payment_method_id'] . '",
-					"payer": {
-						"email": "' . $_POST['payer']['email'] . '"
-					}
-				}',
+		CURLOPT_POSTFIELDS => json_encode($pixBody, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
 		CURLOPT_HTTPHEADER => [
 			'Content-Type: application/json',
 			'X-Idempotency-Key: vianna-reserva-' . ($reserva['id'] ?? '0'),

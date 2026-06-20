@@ -478,3 +478,26 @@ function logMetaEvent(
     // Escreve no arquivo de log
     @file_put_contents($logFile, $logEntry, FILE_APPEND | LOCK_EX);
 }
+
+/** Prazo em minutos para expiração de pagamento de reserva (cron + Mercado Pago). */
+function reserva_pagamento_expiracao_minutos(): int
+{
+    return 30;
+}
+
+/**
+ * ISO 8601 para date_of_expiration do Mercado Pago (Checkout Pro, PIX, Orders).
+ *
+ * @see https://www.mercadopago.com.br/developers/pt/docs/checkout-pro/additional-settings/expiration-date
+ */
+function mp_reserva_date_of_expiration(?int $minutos = null, $from = null): string
+{
+    $minutos = $minutos ?? reserva_pagamento_expiracao_minutos();
+    $tz = new DateTimeZone('America/Sao_Paulo');
+    if ($from instanceof DateTimeInterface) {
+        $base = DateTimeImmutable::createFromInterface($from)->setTimezone($tz);
+    } else {
+        $base = new DateTimeImmutable('now', $tz);
+    }
+    return $base->modify('+' . (int) $minutos . ' minutes')->format('Y-m-d\TH:i:s.000P');
+}

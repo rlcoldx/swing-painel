@@ -41,6 +41,29 @@ header("Access-Control-Allow-Headers: X-API-KEY, Origin, X-Requested-With, Conte
             exit;
         }
 
+        $dateOfExpiration = mp_reserva_date_of_expiration();
+        $preferenceBody = [
+            'back_urls' => [
+                'success' => 'https://api.whatsapp.com/send?phone=5511978270494',
+                'pending' => 'https://api.whatsapp.com/send?phone=5511978270494',
+                'failure' => 'https://api.whatsapp.com/send?phone=5511978270494',
+            ],
+            'external_reference' => (string) $reserva['codigo_reserva'],
+            'notification_url' => 'https://rafael-dev.pro/projetos/motelvianna/app/pagamento_retorno.php',
+            'auto_return' => 'approved',
+            'date_of_expiration' => $dateOfExpiration,
+            'items' => [[
+                'title' => $reserva['suite_nome'] . ' : ' . $reserva['nome'],
+                'description' => $reserva['data_escolhida'] . ' - ' . $reserva['chegada_reserva'] . ' - ' . $reserva['periodo_reserva'],
+                'quantity' => 1,
+                'currency_id' => 'BRL',
+                'unit_price' => (float) $reserva['valor_reserva'],
+            ]],
+            'payment_methods' => [
+                'excluded_payment_types' => [['id' => 'ticket']],
+            ],
+        ];
+
         $curl = curl_init();
 
         curl_setopt_array($curl, array(
@@ -52,30 +75,7 @@ header("Access-Control-Allow-Headers: X-API-KEY, Origin, X-Requested-With, Conte
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => '{
-                "back_urls": {
-                    "success": "https://api.whatsapp.com/send?phone=5511978270494",
-                    "pending": "https://api.whatsapp.com/send?phone=5511978270494",
-                    "failure": "https://api.whatsapp.com/send?phone=5511978270494"
-                },
-                "external_reference": "' .$reserva['codigo_reserva']. '",
-                "notification_url": "https://rafael-dev.pro/projetos/motelvianna/app/pagamento_retorno.php",
-                "auto_return": "approved",
-                "items": [
-                    {
-                        "title": "'.$reserva['suite_nome'].' : '.$reserva['nome'].'",
-                        "description": "'.$reserva['data_escolhida'].' - '.$reserva['chegada_reserva'].' - '.$reserva['periodo_reserva'].'",
-                        "quantity": 1,
-                        "currency_id": "BRL",
-                        "unit_price": '.$reserva['valor_reserva'].'
-                    }
-                ],
-                "payment_methods": {
-                    "excluded_payment_types": [
-                        {"id": "ticket"}
-                    ]
-                }
-            }',
+            CURLOPT_POSTFIELDS => json_encode($preferenceBody, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             CURLOPT_HTTPHEADER => array(
                 'Content-Type: application/json',
                 'X-Idempotency-Key: vianna-reserva-'.$reserva['codigo_reserva'],

@@ -78,14 +78,33 @@ class ReservaController extends Controller
 	public function check_reservas_expiradas($params)
 	{
 		$this->setParams($params);
+		header('Content-Type: application/json; charset=utf-8');
 
-		$reserva = new Reserva();
-		$expiradas = $reserva->checkReservasExpiradas()->getResult();
+		try {
+			$model = new Reserva();
+			$expiradas = $model->checkReservasExpiradas()->getResult();
 
-		if ($expiradas) {
-			foreach ($expiradas as $row) {
-				$reserva->cancelarReservaExpirada($row);
+			if ($expiradas === null) {
+				http_response_code(500);
+				echo json_encode(['ok' => false, 'error' => 'Falha ao consultar reservas expiradas']);
+				return;
 			}
+
+			$canceladas = 0;
+			foreach ($expiradas as $row) {
+				if ($model->cancelarReservaExpirada($row)) {
+					$canceladas++;
+				}
+			}
+
+			echo json_encode([
+				'ok' => true,
+				'encontradas' => count($expiradas),
+				'canceladas' => $canceladas,
+			]);
+		} catch (\Throwable $e) {
+			http_response_code(500);
+			echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
 		}
 	}
 
